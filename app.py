@@ -14,7 +14,7 @@ st.markdown("*Capstone Project - ETL Pipeline & AI Integration*")
 def get_connection():
     return create_engine(st.secrets["DB_URL"])
 
-# 3. LOAD DỮ LIỆU TỰ ĐỘNG (Tự dò tên bảng)
+# 3. LOAD DỮ LIỆU TỰ ĐỘNG
 @st.cache_data
 def load_data():
     engine = get_connection()
@@ -24,7 +24,7 @@ def load_data():
     if not tables:
         return None, "Không tìm thấy bảng nào trong Database!"
     
-    # Ưu tiên lấy bảng đầu tiên tìm thấy
+    # Lấy bảng đầu tiên tìm thấy
     table_name = tables[0] 
     query = f"SELECT * FROM {table_name} LIMIT 2000"
     df = pd.read_sql(query, engine)
@@ -49,14 +49,13 @@ with tab1:
     c1, c2, c3 = st.columns(3)
     c1.metric("Tổng số phim", f"{len(df):,}")
     
-    # Tự động tìm cột để hiện KPI
-    num_cols = df.select_dtypes(include=['number']).columns
-    if 'revenue' in num_cols:
+    # Tự động tìm cột KPI
+    if 'revenue' in df.columns:
          c2.metric("Tổng Doanh Thu", f"${df['revenue'].sum():,.0f}")
-    if 'vote_average' in df.columns:
-         c3.metric("Điểm đánh giá TB", f"{df['vote_average'].mean():.2f}")
-    elif 'rating' in df.columns:
-         c3.metric("Điểm đánh giá TB", f"{df['rating'].mean():.2f}")
+    
+    rating_col = 'vote_average' if 'vote_average' in df.columns else ('rating' if 'rating' in df.columns else None)
+    if rating_col:
+         c3.metric("Điểm đánh giá TB", f"{df[rating_col].mean():.2f}")
 
     st.divider()
     
@@ -65,7 +64,6 @@ with tab1:
     
     with col_chart1:
         st.subheader("Phân bố điểm đánh giá")
-        rating_col = 'vote_average' if 'vote_average' in df.columns else ('rating' if 'rating' in df.columns else None)
         if rating_col:
             fig1 = px.histogram(df, x=rating_col, nbins=20, title="Phổ điểm phim")
             st.plotly_chart(fig1, use_container_width=True)
@@ -80,7 +78,7 @@ with tab1:
             fig2 = px.bar(top_df, y=title_col, x=rev_col, orientation='h')
             st.plotly_chart(fig2, use_container_width=True)
         else:
-            st.info("Dữ liệu thiếu cột Doanh thu (revenue) hoặc Tên phim (title) để vẽ biểu đồ này.")
+            st.info("Thiếu cột Doanh thu (revenue) hoặc Tên phim (title).")
 
     with st.expander("Xem dữ liệu chi tiết"):
         st.dataframe(df)
@@ -88,15 +86,11 @@ with tab1:
 with tab2:
     st.header("Chat với dữ liệu (GenAI)")
     
-    # KIỂM TRA API KEY
     if "GEMINI_API_KEY" in st.secrets:
-        # Cấu hình AI
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        
-        # --- CHỐT MODEL TỪ DANH SÁCH BẠN GỬI ---
+        # Dùng model xịn nhất bạn có
         model = genai.GenerativeModel('models/gemini-2.0-flash') 
         
-        # Giao diện Chat
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
@@ -104,22 +98,32 @@ with tab2:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        if prompt := st.chat_input("Hỏi gì đó (VD: Phim nào doanh thu cao nhất? Xu hướng là gì?)"):
+        if prompt := st.chat_input("Hỏi gì đó về phim?"):
             st.chat_message("user").markdown(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
             
-            # Xử lý trả lời
             try:
-                # Gửi data mẫu (5 dòng) để AI hiểu ngữ cảnh
                 data_context = df.head(5).to_string()
-                full_prompt = f"Bạn là chuyên gia dữ liệu phim. Dựa vào mẫu dữ liệu này:\n{data_context}\n\nHãy trả lời câu hỏi: {prompt}"
-                
+                full_prompt = f"Data mẫu:\n{data_context}\n\nCâu hỏi: {prompt}"
                 response = model.generate_content(full_prompt)
                 bot_reply = response.text
                 
                 with st.chat_message("assistant"):
                     st.markdown(bot_reply)
                 st.session_state.messages.append({"role": "assistant", "content": bot_reply})
-                
             except Exception as e:
-                st.error(f"
+                st.error(f"Lỗi AI: {e}")
+    else:
+        st.warning("⚠️ Chưa nhập GEMINI_API_KEY trong Secrets!")
+
+# SIDEBAR UPLOAD (Đoạn này lúc nãy bạn bị lỗi)
+with st.sidebar:
+    st.header("Upload dữ liệu")
+    up_file = st.file_uploader("Chọn file CSV", type=["csv"])
+    if up_file and st.button("Lưu vào Database"):
+        try:
+            df_new = pd.read_csv(up_file)
+            df_new.to_sql('movies_fact', get_connection(), if_exists='append', index=False)
+            st.success("Đã thêm dữ liệu thành công!")
+        except Exception as e:
+            st.error(f"Lỗi: {e}")
