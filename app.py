@@ -9,6 +9,28 @@ st.set_page_config(page_title="Phim Analytics & AI", layout="wide", page_icon="�
 st.title("🎬 Hệ Thống Phân Tích Phim & Chatbot GenAI")
 st.markdown("*Capstone Project - ETL Pipeline & AI Integration*")
 
+# --- THÊM VÀO APP.PY ---
+
+# TẠO SIDEBAR UPLOAD
+with st.sidebar:
+    st.header("📥 Nạp dữ liệu mới")
+    uploaded_file = st.file_uploader("Chọn file CSV phim mới", type=["csv"])
+    
+    if uploaded_file is not None:
+        if st.button("Lưu vào Database"):
+            try:
+                # Đọc file upload
+                df_new = pd.read_csv(uploaded_file)
+                # Đổi tên cột cho giống Database (nếu cần) - Bước Transform
+                # df_new.columns = [c.lower().replace(' ', '_') for c in df_new.columns]
+                
+                # Load vào Neon
+                df_new.to_sql('movies_fact', engine, if_exists='append', index=False)
+                st.success(f"✅ Đã thêm {len(df_new)} dòng dữ liệu!")
+                st.cache_data.clear() # Xóa cache để Web cập nhật số liệu mới
+            except Exception as e:
+                st.error(f"Lỗi: {e}")
+
 # --- 2. KẾT NỐI NEON DATABASE ---
 @st.cache_resource
 def get_connection():
