@@ -16,7 +16,7 @@ def get_connection():
 
 # --- SỬA Ở ĐÂY: KHÔNG DÙNG TỰ DÒ NỮA ---
 # Thay 'movies_fact' bằng tên bảng thật chứa 45k dòng trên Neon của bạn
-current_table = "movies_fact" 
+current_table = "ratings" 
 
 # --- SIDEBAR: UPLOAD DỮ LIỆU ---
 with st.sidebar:
