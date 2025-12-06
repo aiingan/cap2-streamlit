@@ -17,9 +17,9 @@ def get_connection():
 
 try:
     engine = get_connection()
-    # LƯU Ý: Nếu bảng của bạn tên khác 'film_ratings', hãy sửa dòng dưới
+    # LƯU Ý: Nếu bảng của bạn tên khác 'ratings', hãy sửa dòng dưới
     # Query lấy dữ liệu mẫu
-    df = pd.read_sql("SELECT * FROM film_ratings LIMIT 1000", engine)
+    df = pd.read_sql("SELECT * FROM ratings LIMIT 1000", engine)
 except Exception as e:
     st.error(f"❌ Lỗi kết nối: {e}")
     st.stop()
