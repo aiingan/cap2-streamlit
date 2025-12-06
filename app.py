@@ -11,7 +11,7 @@ st.title("🎬 Hệ Thống Phân Tích Phim & GenAI")
 try:
     engine = create_engine(st.secrets["DB_URL"])
     # Nhớ sửa 'movies_fact' thành tên bảng thật của bạn nếu khác
-    df = pd.read_sql("SELECT * FROM movies_fact LIMIT 1000", engine)
+    df = pd.read_sql("SELECT * FROM ratings LIMIT 1000", engine)
 except Exception as e:
     st.error(f"Lỗi DB: {e}")
     st.stop()
