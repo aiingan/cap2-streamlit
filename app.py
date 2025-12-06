@@ -105,7 +105,7 @@ with tab2:
             with st.spinner("AI đang suy nghĩ..."):
                 try:
                     # Gửi data mẫu + câu hỏi cho AI
-                    model = genai.GenerativeModel('gemini-pro')
+                    model = genai.GenerativeModel('gemini-1.5-flash')
                     data_str = df.head(10).to_string()
                     prompt = f"Dựa vào dữ liệu này:\n{data_str}\n\nHãy trả lời: {user_query}"
                     
