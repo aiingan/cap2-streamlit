@@ -15,7 +15,7 @@ def get_connection():
     return create_engine(st.secrets["DB_URL"])
 
 # --- CẤU HÌNH TÊN BẢNG (Bạn sửa nếu cần) ---
-current_table = "ratings" 
+current_table = "ratings"
 
 # --- SIDEBAR: UPLOAD DỮ LIỆU ---
 with st.sidebar:
@@ -65,22 +65,22 @@ else: rev_col = None
 
 
 # 4. GIAO DIỆN CHÍNH
-tab1, tab2 = st.tabs(["📊 Dashboard Phân Tích", "🤖 Chatbot AI"])
+tab1, tab2, tab3 = st.tabs(["📊 Dashboard Streamlit", "🤖 Chatbot AI", "📈 Tableau Public"])
 
 with tab1:
     st.header("Tổng quan dữ liệu")
 
     # --- PHẦN 1: KPI TỔNG QUAN ---
     col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-    
+
     # KPI 1: Tổng số phim
     col_kpi1.metric("Tổng số phim", f"{len(df):,}")
-    
+
     # KPI 2: Điểm đánh giá trung bình
     if rating_col:
         avg_score = df[rating_col].mean()
         col_kpi2.metric("Điểm đánh giá TB", f"{avg_score:.2f} / 10")
-    
+
     # KPI 3: Tổng doanh thu (nếu có)
     if rev_col:
         total_rev = df[rev_col].sum()
@@ -90,12 +90,12 @@ with tab1:
 
     # --- PHẦN 2: PHÂN BỐ VÀ TOP RATING ---
     col_row2_1, col_row2_2 = st.columns(2)
-    
+
     with col_row2_1:
         st.subheader("1. Phổ điểm phim (Phân bố)")
         if rating_col:
             # Histogram: Trục X là điểm, Trục Y là số lượng (Count)
-            fig_hist = px.histogram(df, x=rating_col, nbins=20, 
+            fig_hist = px.histogram(df, x=rating_col, nbins=20,
                                     labels={rating_col: "Điểm số"},
                                     color_discrete_sequence=['#3366CC'])
             fig_hist.update_layout(bargap=0.1)
@@ -130,16 +130,26 @@ with tab1:
     with st.expander("Xem dữ liệu chi tiết (Bảng)"):
         st.dataframe(df)
 
+
+        # Nút Download
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Tải dữ liệu báo cáo (CSV)",
+        data=csv,
+        file_name='report_phim_capstone.csv',
+        mime='text/csv',
+    )
+
 with tab2:
     st.header("Chatbot AI phân tích phim")
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel('models/gemini-2.0-flash') # Model xịn
-        
+
         if "messages" not in st.session_state: st.session_state.messages = []
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
-            
+
         if prompt := st.chat_input("Hỏi về phim..."):
             st.chat_message("user").write(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
@@ -147,9 +157,23 @@ with tab2:
                 # Kỹ thuật RAG: Gửi kèm data top 5 phim hay nhất để AI tham khảo
                 top_data = df.nlargest(5, rating_col if rating_col else df.columns[0]).to_string()
                 full_prompt = f"Dữ liệu Top 5 phim:\n{top_data}\n\nCâu hỏi: {prompt}"
-                
+
                 resp = model.generate_content(full_prompt)
                 st.chat_message("assistant").write(resp.text)
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
             except Exception as e:
                 st.error(f"Lỗi AI: {e}")
+
+
+
+with tab3:
+    st.header("Báo cáo nâng cao từ Tableau")
+    st.write("Dưới đây là báo cáo được tích hợp từ Tableau Public:")
+    
+    # Thay link bên dưới bằng Link Tableau thật của bạn
+    tableau_url = "https://public.tableau.com/app/profile/t.ng.c.m.qu.nh/viz/Capstone_2_17650480549710/D5"
+    
+    # Code nhúng iframe
+    st.markdown(f"""
+        <iframe src="{tableau_url}" width="100%" height="800"></iframe>
+    """, unsafe_allow_html=True)
