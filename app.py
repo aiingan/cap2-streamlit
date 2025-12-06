@@ -27,7 +27,7 @@ def clean_columns(df):
 def load_data():
     try:
         engine = get_connection()
-        query = f"SELECT * FROM {current_table} LIMIT 10000"
+        query = f"SELECT * FROM ratings LIMIT 10000"
         df = pd.read_sql(query, engine)
         df = clean_columns(df) # <--- Bước quan trọng: Chuẩn hóa tên cột
         return df
