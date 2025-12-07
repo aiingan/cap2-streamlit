@@ -126,7 +126,7 @@ def load_data():
     engine = get_connection()
     try:
         # Lấy 10,000 dòng để phân tích
-        query = f"SELECT * FROM ratings"
+        query = f"SELECT * FROM ratings LIMIT 1000000"
         df = pd.read_sql(query, engine)
         # Chuẩn hóa tên cột ngay khi load ra
         df.columns = [str(c).strip().lower().replace(' ', '_') for c in df.columns]
