@@ -4,3 +4,5 @@ sqlalchemy
 psycopg2-binary
 plotly
 google-generativeai>=0.7.0
+Pillow
+openpyxl
