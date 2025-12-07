@@ -126,7 +126,7 @@ def load_data():
     engine = get_connection()
     try:
         # Lấy 10,000 dòng để phân tích
-        query = f"SELECT * FROM {current_table} LIMIT 10000"
+        query = f"SELECT * FROM ratings"
         df = pd.read_sql(query, engine)
         # Chuẩn hóa tên cột ngay khi load ra
         df.columns = [str(c).strip().lower().replace(' ', '_') for c in df.columns]
@@ -136,7 +136,7 @@ def load_data():
 
 df = load_data()
 if df is None:
-    st.error(f"Lỗi: Không tìm thấy bảng '{current_table}'. Hãy kiểm tra tên bảng trên Neon!")
+    st.error(f"Lỗi: Không tìm thấy bảng 'ratings'. Hãy kiểm tra tên bảng trên Neon!")
     st.stop()
 
 # --- XÁC ĐỊNH TÊN CỘT CHUẨN ---
