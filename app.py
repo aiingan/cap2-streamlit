@@ -63,13 +63,13 @@ with st.sidebar:
         with st.form("web_form_etl"):
             st.write("Nhập thông tin phim mới:")
             t_title = st.text_input("Tên phim (Title)")
-            t_rev = st.number_input("Doanh thu ($)", min_value=0.0)
+            t_country = st.text_input("Quốc gia (Country)") # Sửa form nhập liệu cho khớp
             t_vote = st.slider("Điểm đánh giá (0-10)", 0.0, 10.0, 5.0)
             
             submitted = st.form_submit_button("Nạp dữ liệu")
             if submitted and t_title:
                 # Tạo DataFrame từ input
-                data = {'title': [t_title], 'revenue': [t_rev], 'vote_average': [t_vote]}
+                data = {'title': [t_title], 'origin_country': [t_country], 'vote_average': [t_vote]}
                 df_form = pd.DataFrame(data)
                 clean_and_save(df_form, "Web Form")
 
@@ -104,8 +104,8 @@ with st.sidebar:
                         
                         prompt = """
                         Hãy đóng vai trò là OCR Engine. Trích xuất dữ liệu bảng trong ảnh này thành JSON.
-                        Các trường cần lấy: title, revenue, vote_average.
-                        Chỉ trả về JSON thuần list of objects. Ví dụ: [{"title": "A", "revenue": 100, "vote_average": 5}]
+                        Các trường cần lấy: title, origin_country, vote_average.
+                        Chỉ trả về JSON thuần list of objects. Ví dụ: [{"title": "A", "origin_country": "US", "vote_average": 5}]
                         """
                         response = model_vision.generate_content([prompt, image])
                         
@@ -126,7 +126,7 @@ def load_data():
     engine = get_connection()
     try:
         # Lấy 10,000 dòng để phân tích
-        query = f"SELECT * FROM ratings LIMIT 1000000"
+        query = f"SELECT * FROM ratings LIMIT 500000"
         df = pd.read_sql(query, engine)
         # Chuẩn hóa tên cột ngay khi load ra
         df.columns = [str(c).strip().lower().replace(' ', '_') for c in df.columns]
@@ -143,6 +143,10 @@ if df is None:
 title_col = 'title' if 'title' in df.columns else ('original_title' if 'original_title' in df.columns else None)
 rating_col = 'vote_average' if 'vote_average' in df.columns else ('rating' if 'rating' in df.columns else None)
 rev_col = 'revenue' if 'revenue' in df.columns else None
+
+# Tìm cột quốc gia (cho yêu cầu mới)
+country_col = next((c for c in df.columns if 'country' in c or 'origin' in c), None)
+
 
 # 4. GIAO DIỆN CHÍNH
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard Streamlit", "🤖 Chatbot AI", "📈 Tableau Public"])
@@ -190,16 +194,25 @@ with tab1:
         else:
             st.warning("Thiếu cột tên phim hoặc điểm")
 
-    # BIỂU ĐỒ DOANH THU
-    st.subheader("3. Top 10 Phim Doanh Thu Cao Nhất")
-    if rev_col and title_col:
-        top_rev_df = df.nlargest(10, rev_col).sort_values(by=rev_col, ascending=True)
-        fig_rev = px.bar(top_rev_df, y=title_col, x=rev_col, orientation='h',
-                         labels={title_col: "Tên phim", rev_col: "Doanh thu ($)"},
-                         color=rev_col, color_continuous_scale='RdBu')
-        st.plotly_chart(fig_rev, use_container_width=True)
+    # --- BIỂU ĐỒ MỚI: TOP 10 QUỐC GIA ---
+    st.subheader("3. Top 10 Quốc Gia Sản Xuất Phim Nhiều Nhất")
+    
+    if country_col:
+        # Đếm số lượng phim theo quốc gia
+        country_counts = df[country_col].value_counts().reset_index()
+        country_counts.columns = ['Country', 'Movie Count'] # Đặt tên cột lại cho đẹp
+        
+        # Lấy Top 10
+        top_countries = country_counts.head(10).sort_values(by='Movie Count', ascending=True)
+        
+        fig_country = px.bar(top_countries, y='Country', x='Movie Count', orientation='h',
+                         labels={'Country': "Quốc gia", 'Movie Count': "Số lượng phim"},
+                         color='Movie Count', color_continuous_scale='Magma',
+                         text_auto=True) # Hiện số trên cột
+        st.plotly_chart(fig_country, use_container_width=True)
     else:
-        st.info("Dữ liệu không có cột Doanh thu (revenue) để vẽ biểu đồ này.")
+        st.info("⚠️ Dữ liệu không tìm thấy cột thông tin Quốc gia (ví dụ: 'origin_country', 'production_countries').")
+        st.write("Các cột hiện có:", list(df.columns))
 
     with st.expander("Xem dữ liệu chi tiết (Bảng)"):
         st.dataframe(df)
