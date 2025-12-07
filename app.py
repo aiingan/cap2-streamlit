@@ -169,10 +169,10 @@ with tab2:
 with tab3:
     st.header("Báo cáo nâng cao từ Tableau")
     st.write("Dưới đây là báo cáo được tích hợp từ Tableau Public:")
-    
+
     # Thay link bên dưới bằng Link Tableau thật của bạn
     tableau_url = "https://public.tableau.com/views/Capstone_2_17650480549710/D5?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link?:showVizHome=no&:embed=true"
-    
+
     # Code nhúng iframe
     st.markdown(f"""
         <iframe src="{tableau_url}" width="100%" height="800"></iframe>
